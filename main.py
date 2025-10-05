@@ -368,7 +368,6 @@ class DogModel(ctk.CTkFrame):
 
     # Make dog image, based off the whole genotype at the moment
     def dog_configure(self, genotype):
-        print(genotype)
         self.eumelanin_color = "none"  # Eumelanin color - not set
         self.phaeomelanin_color = "none"  # Phaeomelanin color - not set
         self.brindle_color = "none"  # Mask color - not set
@@ -459,10 +458,6 @@ class DogModel(ctk.CTkFrame):
             self.mask_color = "none"
             self.white_color = ""
 
-        print(self.eumelanin_color)
-        print(self.phaeomelanin_color)
-        print(self.mask_color)
-        print(self.white_color)
         # Assign layer variables correct images
         self.white_color = white_pics[self.white_color]
         self.merle_color = white_pics[self.merle_color]
