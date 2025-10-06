@@ -27,6 +27,9 @@ grey_text = "#7C8E92"
 
 
 ##### DOG #####
+my_dogs = []
+
+
 class Dog:
     "All dogs created by user"
 
@@ -135,12 +138,12 @@ class App(ctk.CTk):
     def show_button(self, frame_class):
         tab_button = self.buttons[frame_class]  # find chosen button in dictionary
         tab_button.grid()  # show chosen button
+        if frame_class in (CoatEditor, FamilyEditor):
+            self.frames[frame_class].new_item()
 
     def hide_button(self, frame_class):
         self.buttons[frame_class].grid_remove()  # hide chosen button
         self.show_frame(DogLists)
-
-    # def create_dog(self): make new dog object
 
 
 class DogLists(ctk.CTkFrame):
@@ -262,23 +265,23 @@ class CoatEditor(ctk.CTkFrame):
         )
         save_button.grid(row=0, column=1)
 
-        gene_list = ctk.CTkScrollableFrame(
+        self.gene_list = ctk.CTkScrollableFrame(
             gene_half,
             fg_color=frame_color,
             scrollbar_button_color=mid_color,
             scrollbar_button_hover_color=button_hover,
         )
-        gene_list.grid(row=1, column=0, sticky="nsew")
-        gene_list.grid_columnconfigure(0, weight=1)
+        self.gene_list.grid(row=1, column=0, sticky="nsew")
+        self.gene_list.grid_columnconfigure(0, weight=1)
 
         # Dictionaries
-        self.genotype = {}  # Pairs of selected alleles for each locus
-        self.pretty_genotype = {}
-        self.genotype_desc = {}  # List of used descriptions
+        self.section_frames = {}  # Section frames
+        self.gene_menus = {}  # Menus by locus+number
+        self.genotype_desc = {}  # Description lines
 
         # Contents of the scrollable frame
         for i, (section, genes_in_section) in enumerate(genes_list):
-            section_frame = ctk.CTkFrame(gene_list, fg_color="transparent")
+            section_frame = ctk.CTkFrame(self.gene_list, fg_color="transparent")
             section_frame.grid(row=i, column=0, pady=(0, 15), sticky="ew")
             section_frame.grid_columnconfigure((0, 1, 2), weight=1)
             section_title = ctk.CTkLabel(  # Section name
@@ -290,6 +293,7 @@ class CoatEditor(ctk.CTkFrame):
                 corner_radius=10,
             )
             section_title.grid(row=0, column=0, columnspan=3, pady=(0, 10), sticky="ew")
+            self.section_frames[section] = section_frame
 
             for j, (locus_name, allele_options) in enumerate(genes_in_section):
                 for m in range(2):
@@ -310,13 +314,8 @@ class CoatEditor(ctk.CTkFrame):
                         dropdown_font=("vds", 17),
                         dropdown_text_color=dark_color,
                     )
-                    # Set different starter choices
-                    if locus_name in replacement_list:
-                        gene_menu.set(replacement_list[locus_name])
                     gene_menu.grid(row=1 + j, column=m, pady=(0, 3), sticky="n")
-                    # Fill dictionary with "_'s" for each locus
-                    self.genotype[(locus_name, m)] = "_"
-                    self.pretty_genotype[(locus_name.letter)] = None
+                    self.gene_menus[(locus_name, m)] = gene_menu
 
                 gene_desc = ctk.CTkButton(  # Gene descripton
                     section_frame,
@@ -335,9 +334,6 @@ class CoatEditor(ctk.CTkFrame):
                 self.genotype_desc[locus_name] = gene_desc  # save gene descriprion
 
         # Set different starter alleles
-        for y in range(2):
-            for locus_key in replacement_list:
-                self.allele_callback(replacement_list[locus_key], locus_key, y)
 
     def allele_callback(self, choice, locus, num):
         # add change to genotype
@@ -354,7 +350,35 @@ class CoatEditor(ctk.CTkFrame):
         desc.grid()  # add new desc-
         self.dogmodel_link.dog_configure(self.dog_model, self.pretty_genotype)
 
-    # def save_dog():
+    def new_item(self):
+        print("dog added")
+        # Dictionaries
+        self.genotype = {}  # Pairs of selected alleles for each locus
+        self.pretty_genotype = {}
+
+        # Go through buttons
+        for (locus_name, num), menu in self.gene_menus.items():
+            # Set default options
+            if locus_name in replacement_list:
+                default_value = replacement_list[locus_name]
+            else:
+                default_value = "_"
+            menu.set(default_value)
+            # Save them to genotype
+            self.genotype[(locus_name, num)] = default_value
+            # Set pretties to None
+            self.pretty_genotype[locus_name.letter] = None
+        # Go through descriptions
+        for locus_name, desc_button in self.genotype_desc.items():
+            # Set them to default options
+            desc_button.configure(text=locus_name.results[frozenset({"_"})][0])
+        # For both menus, set them to replacement options
+        for locus_key in replacement_list:
+            for y in range(2):
+                self.allele_callback(replacement_list[locus_key], locus_key, y)
+
+    def save_dog(self):
+        print("dog saved")
 
 
 class DogModel(ctk.CTkFrame):
@@ -375,8 +399,6 @@ class DogModel(ctk.CTkFrame):
         self.merle_color = ""  # Merle color - not set
         self.white_color = ""  # White color - not set
         self.phaeo_shade = "none"
-        # work out WHITE
-        # work out RED
 
         # Eumelanin-related and merle (B/D, M, H)
         # Layers: eumelanin, white
@@ -405,7 +427,6 @@ class DogModel(ctk.CTkFrame):
                 self.phaeo_shade = "yellow"
             else:
                 self.phaeo_shade = "cream"
-        # WHAT IF ee AND aa (samoyed?)
 
         # Fur pattern phaeomelanin (K, A)
         # Layers: phaeomelanin, mask
@@ -490,6 +511,9 @@ class FamilyEditor(ctk.CTkFrame):
         self.test = ctk.CTkLabel(self, text="fam editor", fg_color="transparent")
         self.new_dog = ctk.CTkButton(self, text="++")
         self.test.grid(row=0, column=0, padx=20)
+
+    def new_item(self):
+        print("family added")
 
 
 app = App()
