@@ -3,7 +3,7 @@ from PIL import Image, ImageTk
 
 from genes import *
 
-help_tab_on = True
+help_tab_on = False
 
 if help_tab_on:
     from help_tab import *
@@ -33,9 +33,9 @@ my_dogs = []
 class Dog:
     "All dogs created by user"
 
-    def __init__(self, dog_id, dog_name):
-        self.dog_id = dog_id
+    def __init__(self, dog_genotype, dog_name="My dog"):
         self.dog_name = dog_name
+        self.dog_genotype = dog_genotype
 
 
 ##### CLASSES #####
@@ -159,11 +159,14 @@ class DogLists(ctk.CTkFrame):
 
         # List of column titles and frames
         lists_data = [
-            ("My dogs", CoatEditor),
-            ("My family trees", FamilyEditor),
+            ("My dogs", CoatEditor, DogList),
+            ("My family trees", FamilyEditor, FamilyList),
         ]
         # Create + buttons
-        for i, (title, frame_class) in enumerate(lists_data):
+        for i, (title, frame_class, list_name) in enumerate(lists_data):
+            x, y = 50, 20
+            if i == 1:
+                x, y = y, x
             list_title = ctk.CTkLabel(
                 self,
                 text=title,
@@ -176,32 +179,75 @@ class DogLists(ctk.CTkFrame):
                 width=100,
                 text="+",
                 font=("vds", 20),
+                text_color=light_color,
                 command=lambda fc=frame_class: (
                     self.master.show_frame(fc),
                     self.master.show_button(fc),
                 ),
+                fg_color=mid_color,
+                hover_color=button_hover,
             )
-            list_title.grid(row=0, column=i, pady=10)
-            btn.grid(row=1, column=i, sticky="n")
-        user_dogs = DogList(self)
-        user_families = FamilyList(self)
-        user_dogs.grid(row=2, column=0, padx=20, pady=10, sticky="snew")
-        user_families.grid(row=2, column=1, padx=20, pady=10, sticky="snew")
+            list_title.grid(row=0, column=i, pady=10, padx=(x, y))
+            btn.grid(row=1, column=i, padx=(x, y), sticky="n")
+            list_widget = list_name(self)
+            list_widget.grid(row=2, column=i, padx=(x, y), pady=10, sticky="nsew")
 
 
 class DogList(ctk.CTkScrollableFrame):
     def __init__(self, master):
         super().__init__(master)
-        self.configure(fg_color=inner_frame_color)
+        self.configure(
+            fg_color=inner_frame_color,
+            scrollbar_button_color=mid_color,
+            scrollbar_button_hover_color=button_hover,
+            width=350,
+        )
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
 
-        self.label = ctk.CTkLabel(self, text="list1")
-        self.label.grid(row=0, column=0, padx=20)
+        self.frame = ctk.CTkButton(
+            self, text="", fg_color=frame_color, hover_color=back_color, width=500
+        )
+        self.frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        self.frame.grid_columnconfigure(0, weight=0)
+        self.frame.grid_columnconfigure(1, weight=1)
+        self.frame.grid_rowconfigure((0, 1), weight=0)
+        self.image = ctk.CTkFrame(
+            self.frame,
+            fg_color=light_color,
+            height=100,
+            width=100,
+        )
+        self.image.grid(row=0, rowspan=2, column=0, pady=10, padx=(10, 20), sticky="w")
+        self.name = ctk.CTkLabel(
+            self.frame,
+            font=("vds", 25),
+            text="My dog",
+            text_color=dark_color,
+            corner_radius=3,
+            fg_color="transparent",
+            bg_color="transparent",
+        )
+        self.name.grid(row=0, column=1, pady=(30, 10), sticky="nw")
+        self.genotype = ctk.CTkLabel(
+            self.frame,
+            font=("vds", 20),
+            text="BBDDAAKKEe__M_H_",
+            text_color=dark_color,
+            corner_radius=20,
+        )
+        self.genotype.grid(row=1, column=1, pady=(0, 30), sticky="nw")
 
 
 class FamilyList(ctk.CTkScrollableFrame):
     def __init__(self, master):
         super().__init__(master)
-        self.configure(fg_color=inner_frame_color)
+        self.configure(
+            fg_color=inner_frame_color,
+            scrollbar_button_color=mid_color,
+            scrollbar_button_hover_color=button_hover,
+            width=350,
+        )
 
         self.label = ctk.CTkLabel(self, text="list2")
         self.label.grid(row=0, column=0, padx=20)
@@ -262,6 +308,7 @@ class CoatEditor(ctk.CTkFrame):
             image=save_icon,
             fg_color="transparent",
             hover_color=mid_color,
+            command=lambda: self.save_item(),
         )
         save_button.grid(row=0, column=1)
 
@@ -377,8 +424,12 @@ class CoatEditor(ctk.CTkFrame):
             for y in range(2):
                 self.allele_callback(replacement_list[locus_key], locus_key, y)
 
-    def save_dog(self):
+    def save_item(self):
         print("dog saved")
+        saved_dog = Dog(self.genotype)
+        print(saved_dog.dog_genotype)
+        my_dogs.append(saved_dog)
+        print(my_dogs)
 
 
 class DogModel(ctk.CTkFrame):
