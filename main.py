@@ -33,9 +33,23 @@ my_dogs = []
 class Dog:
     "All dogs created by user"
 
-    def __init__(self, dog_genotype, dog_name="My dog"):
-        self.dog_name = dog_name
-        self.dog_genotype = dog_genotype
+    def __init__(
+        self,
+        dog_genotype,
+        dog_pretty_genotype,
+        dog_pretty_result,
+        dog_comp,
+        dog_name="My dog",
+    ):
+        self.genotype = dog_genotype  # Pairs of selected alleles for each locus
+        self.pretty_genotype = dog_pretty_genotype  # Gene + desc
+
+        self.name = dog_name
+        self.desc = (
+            " ".join(list(dog_pretty_result.values()))[:19] + ".."
+        )  # Text result
+        self.comp = dog_comp
+        self.icon = self.comp
 
 
 ##### CLASSES #####
@@ -111,6 +125,12 @@ class App(ctk.CTk):
             )
             tab.grid_remove()
 
+            # if not DogLists, pass function from DogLists
+            if frame_class != DogLists:
+                self.frames[frame_class].set_function(
+                    self.frames[DogLists].lists[frame_class].add_clickable_frame
+                )
+
         # Create Help button
         if help_tab_on:
             help = ctk.CTkButton(
@@ -157,11 +177,15 @@ class DogLists(ctk.CTkFrame):
         self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure((0, 1), weight=1)
 
+        # List dictionaries
+        self.lists = {}
+
         # List of column titles and frames
         lists_data = [
             ("My dogs", CoatEditor),
             ("My family trees", FamilyEditor),
         ]
+
         # Create + buttons and scrollable frames
         for i, (title, frame_class) in enumerate(lists_data):
             x, y = 50, 20
@@ -191,6 +215,7 @@ class DogLists(ctk.CTkFrame):
             btn.grid(row=1, column=i, padx=(x, y), sticky="n")
             list_widget = ItemList(self)
             list_widget.grid(row=2, column=i, padx=(x, y), pady=10, sticky="nsew")
+            self.lists[frame_class] = list_widget
 
 
 class ItemList(ctk.CTkScrollableFrame):
@@ -204,26 +229,31 @@ class ItemList(ctk.CTkScrollableFrame):
         )
         self.grid_columnconfigure(0, weight=1)
 
-        self.add_clickable_frame(self, 0)
+        # Clickable frame dictionary
+        self.clickableframes = {}
 
-    def add_clickable_frame(self, parent, i):
+    def add_clickable_frame(self, link_to, used_item, i):
         """Add new clickable frame to a list"""
         clickable_frame = ClickableFrame(
-            parent,
+            self.master.master.master.master.frames[DogLists].lists[link_to],
             fg_color=frame_color,
-            command=lambda: self.frame_clicked("frame 1"),
+            command=lambda i=i: self.frame_clicked(i),
             corner_radius=10,
         )
         clickable_frame.grid(row=i, column=0)
 
         # Set dog, desc, image
-        clickable_frame.name.configure(text="My dog")
-        clickable_frame.desc.configure(text="BBDDAAKKEe__M_H_")
-        # frame1.desc.configure(text="гены")
+        clickable_frame.name.configure(text=used_item.name)
+        clickable_frame.desc.configure(text=used_item.desc)
+        clickable_frame.image.configure(image=used_item.icon)
 
-    def frame_clicked(self, frame_name):
+        self.clickableframes[i] = clickable_frame
+        print("Clickable frame added")
+        print(self.clickableframes)
+
+    def frame_clicked(self, i):
         """Event on click"""
-        print(f"Clicked {frame_name}")
+        print(f"Clicked {i}")
 
 
 class ClickableFrame(ctk.CTkFrame):
@@ -247,7 +277,6 @@ class ClickableFrame(ctk.CTkFrame):
             font=("vds", 25),
             text="Name",
             text_color=dark_color,
-            corner_radius=3,
             fg_color="transparent",
             bg_color="transparent",
         )
@@ -258,15 +287,16 @@ class ClickableFrame(ctk.CTkFrame):
             self,
             font=("vds", 20),
             text="Description",
-            text_color=dark_color,
-            corner_radius=20,
+            text_color=mid_color,
         )
         self.desc.grid(row=1, column=1, pady=(0, 30), sticky="nw")
 
         # Image (for dog list only)
-        self.image = ctk.CTkFrame(
+
+        self.image = ctk.CTkLabel(
             self,
             fg_color=light_color,
+            text="",
             height=100,
             width=100,
         )
@@ -441,13 +471,19 @@ class CoatEditor(ctk.CTkFrame):
         desc = self.genotype_desc[locus]
         desc.configure(text=text_result)  # change desc based on dict data
         desc.grid()  # add new desc-
+        self.pretty_result[locus] = pretty_genes
         self.dogmodel_link.dog_configure(self.dog_model, self.pretty_genotype)
+
+    def set_function(self, func):
+        """Set link to function from ItemList"""
+        self.itemlist_function = func
 
     def new_item(self):
         print("dog added")
         # Dictionaries
         self.genotype = {}  # Pairs of selected alleles for each locus
-        self.pretty_genotype = {}
+        self.pretty_genotype = {}  # Gene + desc
+        self.pretty_result = {}  # Text result
 
         # Go through buttons
         for (locus_name, num), menu in self.gene_menus.items():
@@ -471,11 +507,18 @@ class CoatEditor(ctk.CTkFrame):
                 self.allele_callback(replacement_list[locus_key], locus_key, y)
 
     def save_item(self):
+        """Save NEW dog item"""
         print("dog saved")
-        saved_dog = Dog(self.genotype)
-        print(saved_dog.dog_genotype)
+        # Create dog object and save it to my_dogs
+        saved_dog = Dog(
+            self.genotype,
+            self.pretty_genotype,
+            self.pretty_result,
+            self.dog_model.comp,
+        )
         my_dogs.append(saved_dog)
-        print(my_dogs)
+        # Add new button to DogLists
+        self.itemlist_function(CoatEditor, saved_dog, len(my_dogs) - 1)
 
 
 class DogModel(ctk.CTkFrame):
@@ -595,8 +638,8 @@ class DogModel(ctk.CTkFrame):
             light_image=self.comp,
             size=(550, 386),
         )
-        display = ctk.CTkLabel(self, image=self.comp, text="")
-        display.grid(row=0, column=0)
+        self.display = ctk.CTkLabel(self, image=self.comp, text="")
+        self.display.grid(row=0, column=0)
 
 
 class FamilyEditor(ctk.CTkFrame):
@@ -605,12 +648,21 @@ class FamilyEditor(ctk.CTkFrame):
         self.configure(fg_color=frame_color)
 
         # Widgets
-        self.test = ctk.CTkLabel(self, text="fam editor", fg_color="transparent")
-        self.new_dog = ctk.CTkButton(self, text="++")
+        self.test = ctk.CTkButton(
+            self, text="fam editor", fg_color="transparent", command=self.save_item
+        )
         self.test.grid(row=0, column=0, padx=20)
+
+    def set_function(self, func):
+        """Set link to function from ItemList"""
+        self.itemlist_function = func
 
     def new_item(self):
         print("family added")
+
+    def save_item(self):
+        print("family saved")
+        self.itemlist_function(FamilyEditor, 1)
 
 
 app = App()
