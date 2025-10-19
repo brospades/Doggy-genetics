@@ -159,11 +159,11 @@ class DogLists(ctk.CTkFrame):
 
         # List of column titles and frames
         lists_data = [
-            ("My dogs", CoatEditor, DogList),
-            ("My family trees", FamilyEditor, FamilyList),
+            ("My dogs", CoatEditor),
+            ("My family trees", FamilyEditor),
         ]
-        # Create + buttons
-        for i, (title, frame_class, list_name) in enumerate(lists_data):
+        # Create + buttons and scrollable frames
+        for i, (title, frame_class) in enumerate(lists_data):
             x, y = 50, 20
             if i == 1:
                 x, y = y, x
@@ -189,11 +189,11 @@ class DogLists(ctk.CTkFrame):
             )
             list_title.grid(row=0, column=i, pady=10, padx=(x, y))
             btn.grid(row=1, column=i, padx=(x, y), sticky="n")
-            list_widget = list_name(self)
+            list_widget = ItemList(self)
             list_widget.grid(row=2, column=i, padx=(x, y), pady=10, sticky="nsew")
 
 
-class DogList(ctk.CTkScrollableFrame):
+class ItemList(ctk.CTkScrollableFrame):
     def __init__(self, master):
         super().__init__(master)
         self.configure(
@@ -203,62 +203,108 @@ class DogList(ctk.CTkScrollableFrame):
             width=350,
         )
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=0)
 
-        self.frame = ctk.CTkButton(
-            self, text="", fg_color=frame_color, hover_color=back_color, width=500
+        self.add_clickable_frame(self, 0)
+
+    def add_clickable_frame(self, parent, i):
+        """Add new clickable frame to a list"""
+        clickable_frame = ClickableFrame(
+            parent,
+            fg_color=frame_color,
+            command=lambda: self.frame_clicked("frame 1"),
+            corner_radius=10,
         )
-        self.frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        self.frame.grid_columnconfigure(0, weight=0)
-        self.frame.grid_columnconfigure(1, weight=1)
-        self.frame.grid_rowconfigure((0, 1), weight=0)
-        self.image = ctk.CTkFrame(
-            self.frame,
-            fg_color=light_color,
-            height=100,
-            width=100,
-        )
-        self.image.grid(row=0, rowspan=2, column=0, pady=10, padx=(10, 20), sticky="w")
+        clickable_frame.grid(row=i, column=0)
+
+        # Set dog, desc, image
+        clickable_frame.name.configure(text="My dog")
+        clickable_frame.desc.configure(text="BBDDAAKKEe__M_H_")
+        # frame1.desc.configure(text="гены")
+
+    def frame_clicked(self, frame_name):
+        """Event on click"""
+        print(f"Clicked {frame_name}")
+
+
+class ClickableFrame(ctk.CTkFrame):
+    def __init__(self, master, command=None, **kwargs):
+        super().__init__(master, **kwargs)
+        self.command = command
+
+        # Settings
+        self.normal_color = self.cget("fg_color")
+        self.hover_color = back_color
+
+        # Make grid and place all elements
+        self.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure((0, 1), weight=0)
+
+        # Name
         self.name = ctk.CTkLabel(
-            self.frame,
+            self,
             font=("vds", 25),
-            text="My dog",
+            text="Name",
             text_color=dark_color,
             corner_radius=3,
             fg_color="transparent",
             bg_color="transparent",
         )
         self.name.grid(row=0, column=1, pady=(30, 10), sticky="nw")
-        self.genotype = ctk.CTkLabel(
-            self.frame,
+
+        # Description
+        self.desc = ctk.CTkLabel(
+            self,
             font=("vds", 20),
-            text="BBDDAAKKEe__M_H_",
+            text="Description",
             text_color=dark_color,
             corner_radius=20,
         )
-        self.genotype.grid(row=1, column=1, pady=(0, 30), sticky="nw")
+        self.desc.grid(row=1, column=1, pady=(0, 30), sticky="nw")
 
-
-class FamilyList(ctk.CTkScrollableFrame):
-    def __init__(self, master):
-        super().__init__(master)
-        self.configure(
-            fg_color=inner_frame_color,
-            scrollbar_button_color=mid_color,
-            scrollbar_button_hover_color=button_hover,
-            width=350,
+        # Image (for dog list only)
+        self.image = ctk.CTkFrame(
+            self,
+            fg_color=light_color,
+            height=100,
+            width=100,
         )
+        self.image.grid(row=0, rowspan=2, column=0, pady=10, padx=(10, 20), sticky="w")
 
-        self.label = ctk.CTkLabel(self, text="list2")
-        self.label.grid(row=0, column=0, padx=20)
+        # Set events for the frame
+        self.bind("<Enter>", self._on_enter)
+        self.bind("<Leave>", self._on_leave)
+        self.bind("<Button-1>", self._on_click)
+        self.configure(cursor="hand2")
+
+        # Set events for child widgets of the frame
+        for child in self.winfo_children():
+            child.bind("<Enter>", self._on_enter)
+            child.bind("<Leave>", self._on_leave)
+            child.bind("<Button-1>", self._on_click)
+            child.configure(cursor="hand2")
+
+    def _on_enter(self, event):
+        """Change background color when hovering"""
+        self.configure(fg_color=self.hover_color)
+
+    def _on_leave(self, event):
+        """Change background color back after hovering"""
+        self.configure(fg_color=self.normal_color)
+
+    def _on_click(self, event):
+        """Button command"""
+        if self.command:
+            self.command()
 
 
 class CoatEditor(ctk.CTkFrame):
-    def __init__(self, master, instance):
+    def __init__(self, master, help_instance):
         super().__init__(master)
         self.configure(fg_color=inner_frame_color)
         self.dogmodel_link = DogModel
-        self.help_link = instance
+        self.help_link = help_instance
 
         # Grid settings
         self.grid_columnconfigure(0, weight=2)  # Two halves - dog and genes
