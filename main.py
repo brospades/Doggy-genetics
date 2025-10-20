@@ -247,7 +247,7 @@ class ItemList(ctk.CTkScrollableFrame):
         clickable_frame = ClickableFrame(
             self.master.master.master.master.frames[DogLists].lists[link_to],
             fg_color=frame_color,
-            command=lambda i=i: self.frame_clicked(i),
+            command=lambda link=link_to: self.frame_clicked(link, i),
             corner_radius=10,
         )
         clickable_frame.grid(row=i, column=0)
@@ -258,12 +258,13 @@ class ItemList(ctk.CTkScrollableFrame):
         clickable_frame.image.configure(image=used_item.icon)
 
         self.clickableframes[i] = clickable_frame
-        print("Clickable frame added")
-        print(self.clickableframes)
 
-    def frame_clicked(self, i):
+    def frame_clicked(self, link_to, i):
         """Event on click"""
-        print(f"Clicked {i}")
+        # Set dog
+        self.master.master.master.master.frames[link_to].open_item(i)
+        # Show frame
+        self.master.master.master.master.show_frame(link_to)
 
 
 class ClickableFrame(ctk.CTkFrame):
@@ -466,8 +467,6 @@ class CoatEditor(ctk.CTkFrame):
                 gene_desc.grid(row=1 + j, column=2, sticky="n")
                 self.genotype_desc[locus_name] = gene_desc  # save gene descriprion
 
-        # Set different starter alleles
-
     def allele_callback(self, choice, locus, num):
         # add change to genotype
         self.genotype[(locus, num)] = choice
@@ -489,8 +488,7 @@ class CoatEditor(ctk.CTkFrame):
         self.itemlist_function = func
 
     def new_item(self):
-        print("dog added")
-
+        """Set CoatEditor to default dog"""
         # Clear name and deselect
         self.dog_name.delete(0, len(self.dog_name.get()))
         self.master.focus_set()
@@ -520,6 +518,31 @@ class CoatEditor(ctk.CTkFrame):
         for locus_key in replacement_list:
             for y in range(2):
                 self.allele_callback(replacement_list[locus_key], locus_key, y)
+
+    def open_item(self, index):
+        """Set CoatEditor to chosen dog"""
+        self.opened_dog = my_dogs[index]  # Pull dog object from my_dogs list
+
+        # Set name
+        self.dog_name.delete(0, len(self.dog_name.get()))
+        self.dog_name.insert(0, self.opened_dog.name)
+        self.master.focus_set()
+
+        # Dictionaries
+        self.genotype = self.opened_dog.genotype
+        self.pretty_genotype = self.opened_dog.pretty_genotype
+
+        # Go through buttons
+        for (locus_name, num), menu in self.gene_menus.items():
+            # Fetch allele values from genotype to each button
+            value = self.genotype[(locus_name, num)]
+            menu.set(value)
+        # Go through descriptions
+        for locus_name, desc_button in self.genotype_desc.items():
+            # Set them to default options
+            desc_button.configure(text=locus_name.results[frozenset({"_"})][0])
+        # Set dog image to display
+        self.dog_model.dog_make_images(self.opened_dog.comp)
 
     def save_item(self):
         """Save NEW dog item"""
@@ -655,10 +678,13 @@ class DogModel(ctk.CTkFrame):
             light_image=self.comp,
             size=(550, 386),
         )
-        self.display = ctk.CTkLabel(self, image=self.comp, text="")
+        self.dog_make_images(self.comp)
+
+    def dog_make_images(self, comp):
+        self.display = ctk.CTkLabel(self, image=comp, text="")
         self.display.grid(row=0, column=0)
 
-        self.icon = self.image_clone(self.comp, (100, 70))
+        self.icon = self.image_clone(comp, (100, 70))
 
     def image_clone(self, image, new_size):
         pil_image = image._light_image
