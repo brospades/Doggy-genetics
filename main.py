@@ -35,21 +35,31 @@ class Dog:
 
     def __init__(
         self,
+        master,
         dog_genotype,
         dog_pretty_genotype,
         dog_pretty_result,
         dog_comp,
+        dog_icon,
         dog_name="My dog",
     ):
         self.genotype = dog_genotype  # Pairs of selected alleles for each locus
         self.pretty_genotype = dog_pretty_genotype  # Gene + desc
 
+        # Name
+        if master.dog_name.get():
+            dog_name = master.dog_name.get()
         self.name = dog_name
-        self.desc = (
-            " ".join(list(dog_pretty_result.values()))[:19] + ".."
-        )  # Text result
+        if len(self.name) > 12:
+            self.name = self.name[:10] + ".."
+
+        # Text result
+        self.desc = " ".join(list(dog_pretty_result.values()))[:19] + ".."
+
+        # Fullsize dog image
         self.comp = dog_comp
-        self.icon = self.comp
+        # Dog icon
+        self.icon = dog_icon
 
 
 ##### CLASSES #####
@@ -292,13 +302,13 @@ class ClickableFrame(ctk.CTkFrame):
         self.desc.grid(row=1, column=1, pady=(0, 30), sticky="nw")
 
         # Image (for dog list only)
-
         self.image = ctk.CTkLabel(
             self,
             fg_color=light_color,
             text="",
             height=100,
             width=100,
+            corner_radius=7,
         )
         self.image.grid(row=0, rowspan=2, column=0, pady=10, padx=(10, 20), sticky="w")
 
@@ -343,18 +353,18 @@ class CoatEditor(ctk.CTkFrame):
         )  # Two halves - dog and genes
         self.grid_rowconfigure(0, weight=1)
 
-        dog_half = ctk.CTkFrame(self, fg_color="transparent")
-        dog_half.grid(row=0, column=0, padx=(10, 0), pady=10, sticky="nsew")
-        dog_half.grid_rowconfigure(0, weight=0)  # Top row
-        dog_half.grid_rowconfigure(1, weight=1)  # Dog image area
-        dog_half.grid_columnconfigure(0, weight=1)
+        self.dog_half = ctk.CTkFrame(self, fg_color="transparent")
+        self.dog_half.grid(row=0, column=0, padx=(10, 0), pady=10, sticky="nsew")
+        self.dog_half.grid_rowconfigure(0, weight=0)  # Top row
+        self.dog_half.grid_rowconfigure(1, weight=1)  # Dog image area
+        self.dog_half.grid_columnconfigure(0, weight=1)
 
-        dog_top = ctk.CTkFrame(dog_half, height=60, fg_color="transparent")
-        dog_top.grid(row=0, column=0, sticky="nsew")
-        dog_top.grid_columnconfigure((0, 1), weight=1)
-        dog_top.grid_rowconfigure(0)
-        dog_name = ctk.CTkEntry(
-            dog_half,
+        self.dog_top = ctk.CTkFrame(self.dog_half, height=60, fg_color="transparent")
+        self.dog_top.grid(row=0, column=0, sticky="nsew")
+        self.dog_top.grid_columnconfigure((0, 1), weight=1)
+        self.dog_top.grid_rowconfigure(0)
+        self.dog_name = ctk.CTkEntry(
+            self.dog_half,
             height=50,
             font=("vds", 25),
             text_color=dark_color,
@@ -363,22 +373,22 @@ class CoatEditor(ctk.CTkFrame):
             placeholder_text_color=grey_text,
             fg_color=inner_frame_color,
         )
-        dog_name.grid(row=0, column=0, padx=10, sticky="w")
+        self.dog_name.grid(row=0, column=0, padx=10, sticky="w")
         # Dog base
-        self.dog_model = DogModel(dog_half)
+        self.dog_model = DogModel(self.dog_half)
         self.dog_model.grid(row=1, column=0, sticky="w")
 
-        gene_half = ctk.CTkFrame(self, fg_color="transparent")
-        gene_half.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
-        gene_half.grid_rowconfigure(0, weight=0)  # Top row
-        gene_half.grid_rowconfigure(1, weight=1)  # Gene list
-        gene_half.grid_columnconfigure(0, weight=1)
+        self.gene_half = ctk.CTkFrame(self, fg_color="transparent")
+        self.gene_half.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        self.gene_half.grid_rowconfigure(0, weight=0)  # Top row
+        self.gene_half.grid_rowconfigure(1, weight=1)  # Gene list
+        self.gene_half.grid_columnconfigure(0, weight=1)
 
-        gene_top = ctk.CTkFrame(gene_half, height=25, fg_color="transparent")
-        gene_top.grid(row=0, column=0, pady=(0, 10), sticky="nse")
-        gene_top.grid_columnconfigure((0, 1), weight=0)
-        save_button = ctk.CTkButton(
-            gene_top,
+        self.gene_top = ctk.CTkFrame(self.gene_half, height=25, fg_color="transparent")
+        self.gene_top.grid(row=0, column=0, pady=(0, 10), sticky="nse")
+        self.gene_top.grid_columnconfigure((0, 1), weight=0)
+        self.save_button = ctk.CTkButton(
+            self.gene_top,
             width=40,
             text="",
             image=save_icon,
@@ -386,10 +396,10 @@ class CoatEditor(ctk.CTkFrame):
             hover_color=mid_color,
             command=lambda: self.save_item(),
         )
-        save_button.grid(row=0, column=1)
+        self.save_button.grid(row=0, column=1)
 
         self.gene_list = ctk.CTkScrollableFrame(
-            gene_half,
+            self.gene_half,
             fg_color=frame_color,
             scrollbar_button_color=mid_color,
             scrollbar_button_hover_color=button_hover,
@@ -480,6 +490,11 @@ class CoatEditor(ctk.CTkFrame):
 
     def new_item(self):
         print("dog added")
+
+        # Clear name and deselect
+        self.dog_name.delete(0, len(self.dog_name.get()))
+        self.master.focus_set()
+
         # Dictionaries
         self.genotype = {}  # Pairs of selected alleles for each locus
         self.pretty_genotype = {}  # Gene + desc
@@ -511,10 +526,12 @@ class CoatEditor(ctk.CTkFrame):
         print("dog saved")
         # Create dog object and save it to my_dogs
         saved_dog = Dog(
+            self,
             self.genotype,
             self.pretty_genotype,
             self.pretty_result,
             self.dog_model.comp,
+            self.dog_model.icon,
         )
         my_dogs.append(saved_dog)
         # Add new button to DogLists
@@ -640,6 +657,12 @@ class DogModel(ctk.CTkFrame):
         )
         self.display = ctk.CTkLabel(self, image=self.comp, text="")
         self.display.grid(row=0, column=0)
+
+        self.icon = self.image_clone(self.comp, (100, 70))
+
+    def image_clone(self, image, new_size):
+        pil_image = image._light_image
+        return ctk.CTkImage(light_image=pil_image, size=new_size)
 
 
 class FamilyEditor(ctk.CTkFrame):
