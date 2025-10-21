@@ -546,7 +546,6 @@ class CoatEditor(ctk.CTkFrame):
 
     def save_item(self):
         """Save NEW dog item"""
-        print("dog saved")
         # Create dog object and save it to my_dogs
         saved_dog = Dog(
             self,
@@ -559,6 +558,10 @@ class CoatEditor(ctk.CTkFrame):
         my_dogs.append(saved_dog)
         # Add new button to DogLists
         self.itemlist_function(CoatEditor, saved_dog, len(my_dogs) - 1)
+
+    def update_item(self):
+        """Save NEW dog item"""
+        print("dog updated")
 
 
 class DogModel(ctk.CTkFrame):
@@ -697,9 +700,10 @@ class FamilyEditor(ctk.CTkFrame):
         self.configure(fg_color=frame_color)
 
         # Widgets
-        self.test = ctk.CTkButton(
-            self, text="fam editor", fg_color="transparent", command=self.save_item
-        )
+        # self.test = ctk.CTkButton(
+        #    self, text="fam editor", fg_color="transparent", command=self.save_item
+        # )
+        self.test = ctk.CTkLabel(self, text="To be added", font=("vds", 20))
         self.test.grid(row=0, column=0, padx=20)
 
     def set_function(self, func):
