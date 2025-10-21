@@ -267,7 +267,6 @@ class ItemList(ctk.CTkScrollableFrame):
         self.master.master.master.master.show_button(link_to)
         # Set dog
         self.master.master.master.master.frames[link_to].open_item(i)
-       
 
 
 class ClickableFrame(ctk.CTkFrame):
