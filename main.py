@@ -165,10 +165,10 @@ class App(ctk.CTk):
         frame = self.frames[frame_class]  # find chosen frame in dictionary
         frame.grid()  # show chosen frame
 
-    def show_button(self, frame_class):
+    def show_button(self, frame_class, rule=None):
         tab_button = self.buttons[frame_class]  # find chosen button in dictionary
         tab_button.grid()  # show chosen button
-        if frame_class in (CoatEditor, FamilyEditor):
+        if rule == "new":
             self.frames[frame_class].new_item()
 
     def hide_button(self, frame_class):
@@ -216,7 +216,7 @@ class DogLists(ctk.CTkFrame):
                 text_color=light_color,
                 command=lambda fc=frame_class: (
                     self.master.show_frame(fc),
-                    self.master.show_button(fc),
+                    self.master.show_button(fc, "new"),
                 ),
                 fg_color=mid_color,
                 hover_color=button_hover,
@@ -261,10 +261,13 @@ class ItemList(ctk.CTkScrollableFrame):
 
     def frame_clicked(self, link_to, i):
         """Event on click"""
-        # Set dog
-        self.master.master.master.master.frames[link_to].open_item(i)
         # Show frame
         self.master.master.master.master.show_frame(link_to)
+        # Show button
+        self.master.master.master.master.show_button(link_to)
+        # Set dog
+        self.master.master.master.master.frames[link_to].open_item(i)
+       
 
 
 class ClickableFrame(ctk.CTkFrame):
@@ -397,7 +400,17 @@ class CoatEditor(ctk.CTkFrame):
             hover_color=mid_color,
             command=lambda: self.save_item(),
         )
-        self.save_button.grid(row=0, column=1)
+        self.reload_button = ctk.CTkButton(
+            self.gene_top,
+            width=40,
+            text="",
+            image=reload_icon,
+            fg_color="transparent",
+            hover_color=mid_color,
+            command=lambda: self.update_item(),
+        )
+        self.save_button.grid(row=0, column=1, padx=(5, 0))
+        self.reload_button.grid(row=0, column=0, padx=5)
 
         self.gene_list = ctk.CTkScrollableFrame(
             self.gene_half,
@@ -489,6 +502,9 @@ class CoatEditor(ctk.CTkFrame):
 
     def new_item(self):
         """Set CoatEditor to default dog"""
+        self.index = None  # Clear current index
+        self.reload_button.grid_remove()  # Hide reload button
+
         # Clear name and deselect
         self.dog_name.delete(0, len(self.dog_name.get()))
         self.master.focus_set()
@@ -521,6 +537,8 @@ class CoatEditor(ctk.CTkFrame):
 
     def open_item(self, index):
         """Set CoatEditor to chosen dog"""
+        self.reload_button.grid()  # Show reload button
+        self.index = index  # Get index of the opened item
         self.opened_dog = my_dogs[index]  # Pull dog object from my_dogs list
 
         # Set name
@@ -529,8 +547,8 @@ class CoatEditor(ctk.CTkFrame):
         self.master.focus_set()
 
         # Dictionaries
-        self.genotype = self.opened_dog.genotype
-        self.pretty_genotype = self.opened_dog.pretty_genotype
+        self.genotype = self.opened_dog.genotype.copy()
+        self.pretty_genotype = self.opened_dog.pretty_genotype.copy()
 
         # Go through buttons
         for (locus_name, num), menu in self.gene_menus.items():
@@ -546,6 +564,7 @@ class CoatEditor(ctk.CTkFrame):
 
     def save_item(self):
         """Save NEW dog item"""
+        self.reload_button.grid()  # Show reload button
         # Create dog object and save it to my_dogs
         saved_dog = Dog(
             self,
@@ -556,12 +575,30 @@ class CoatEditor(ctk.CTkFrame):
             self.dog_model.icon,
         )
         my_dogs.append(saved_dog)
+
+        # Get index of the last saved item
+        self.index = len(my_dogs) - 1
         # Add new button to DogLists
-        self.itemlist_function(CoatEditor, saved_dog, len(my_dogs) - 1)
+        self.itemlist_function(CoatEditor, saved_dog, self.index)
 
     def update_item(self):
-        """Save NEW dog item"""
-        print("dog updated")
+        """Update EXISTING dog item"""
+        print(f"this dog was previously saved under index{self.index}")
+        print("updating dog")
+
+        # Create dog object and save it to my_dogs with existing index
+        saved_dog = Dog(
+            self,
+            self.genotype,
+            self.pretty_genotype,
+            self.pretty_result,
+            self.dog_model.comp,
+            self.dog_model.icon,
+        )
+        my_dogs[self.index] = saved_dog
+
+        # Update button in the button list
+        self.itemlist_function(CoatEditor, saved_dog, self.index)
 
 
 class DogModel(ctk.CTkFrame):
