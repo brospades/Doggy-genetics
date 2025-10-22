@@ -27,7 +27,7 @@ grey_text = "#7C8E92"
 
 
 ##### DOG #####
-my_dogs = []
+my_dogs = {}
 
 
 class Dog:
@@ -238,12 +238,15 @@ class ItemList(ctk.CTkScrollableFrame):
             width=350,
         )
         self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=0)
 
         # Clickable frame dictionary
         self.clickableframes = {}
 
     def add_clickable_frame(self, link_to, used_item, i):
         """Add new clickable frame to a list"""
+        if i in self.clickableframes.keys():
+            self.clickableframes[i].grid_remove()
         clickable_frame = ClickableFrame(
             self.master.master.master.master.frames[DogLists].lists[link_to],
             fg_color=frame_color,
@@ -251,6 +254,20 @@ class ItemList(ctk.CTkScrollableFrame):
             corner_radius=10,
         )
         clickable_frame.grid(row=i, column=0)
+
+        # Delete button
+        self.delete_button = ctk.CTkButton(
+            clickable_frame,
+            text="",
+            image=delete_icon,
+            fg_color="transparent",
+            hover_color=back_color,
+            command=lambda link=link_to: self.frame_deleted(link, i),
+            width=15,
+            height=25,
+            corner_radius=5,
+        )
+        self.delete_button.grid(row=0, rowspan=2, column=1, sticky="es", padx=5, pady=5)
 
         # Set dog, desc, image
         clickable_frame.name.configure(text=used_item.name)
@@ -268,6 +285,16 @@ class ItemList(ctk.CTkScrollableFrame):
         # Set dog
         self.master.master.master.master.frames[link_to].open_item(i)
 
+    def frame_deleted(self, link_to, i):
+        """Delete button"""
+        # Delete item from dog list and button list
+        print(f"hide button {i}")
+        self.clickableframes[i].grid_forget()
+        print(my_dogs)
+        print(self.clickableframes)
+        del my_dogs[i]
+        del self.clickableframes[i]
+
 
 class ClickableFrame(ctk.CTkFrame):
     def __init__(self, master, command=None, **kwargs):
@@ -280,7 +307,7 @@ class ClickableFrame(ctk.CTkFrame):
 
         # Make grid and place all elements
         self.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure((0), weight=0)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure((0, 1), weight=0)
 
@@ -293,7 +320,7 @@ class ClickableFrame(ctk.CTkFrame):
             fg_color="transparent",
             bg_color="transparent",
         )
-        self.name.grid(row=0, column=1, pady=(30, 10), sticky="nw")
+        self.name.grid(row=0, column=1, pady=(30, 5), sticky="nw")
 
         # Description
         self.desc = ctk.CTkLabel(
@@ -501,7 +528,7 @@ class CoatEditor(ctk.CTkFrame):
 
     def new_item(self):
         """Set CoatEditor to default dog"""
-        self.index = None  # Clear current index
+        self.index = 1  # Clear current index
         self.reload_button.grid_remove()  # Hide reload button
 
         # Clear name and deselect
@@ -564,6 +591,11 @@ class CoatEditor(ctk.CTkFrame):
     def save_item(self):
         """Save NEW dog item"""
         self.reload_button.grid()  # Show reload button
+
+        # Copy dictionaries
+        self.genotype = self.genotype.copy()
+        self.pretty_genotype = self.pretty_genotype.copy()
+
         # Create dog object and save it to my_dogs
         saved_dog = Dog(
             self,
@@ -573,17 +605,28 @@ class CoatEditor(ctk.CTkFrame):
             self.dog_model.comp,
             self.dog_model.icon,
         )
-        my_dogs.append(saved_dog)
 
-        # Get index of the last saved item
-        self.index = len(my_dogs) - 1
+        # Get index and save item
+        if my_dogs:
+            self.index = max(my_dogs.keys()) + 1
+        else:
+            self.index = 1
+        print(f"saving dog {self.index}")
+        my_dogs[self.index] = saved_dog
         # Add new button to DogLists
         self.itemlist_function(CoatEditor, saved_dog, self.index)
 
+        # Copy dictionaries
+        self.genotype = self.genotype.copy()
+        self.pretty_genotype = self.pretty_genotype.copy()
+
     def update_item(self):
         """Update EXISTING dog item"""
-        print(f"this dog was previously saved under index{self.index}")
-        print("updating dog")
+        print(f"updating dog {self.index}")
+
+        # Dictionaries
+        self.genotype = self.genotype.copy()
+        self.pretty_genotype = self.pretty_genotype.copy()
 
         # Create dog object and save it to my_dogs with existing index
         saved_dog = Dog(
@@ -598,6 +641,10 @@ class CoatEditor(ctk.CTkFrame):
 
         # Update button in the button list
         self.itemlist_function(CoatEditor, saved_dog, self.index)
+
+        # Copy dictionaries
+        self.genotype = self.genotype.copy()
+        self.pretty_genotype = self.pretty_genotype.copy()
 
 
 class DogModel(ctk.CTkFrame):

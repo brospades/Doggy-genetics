@@ -5,7 +5,12 @@ from PIL import Image, ImageTk
 ##### IMAGES #####
 
 save_icon = ctk.CTkImage(light_image=Image.open("images/icon-save.png"), size=(25, 25))
-reload_icon = ctk.CTkImage(light_image=Image.open("images/icon-save-reload.png"), size=(25, 25))
+reload_icon = ctk.CTkImage(
+    light_image=Image.open("images/icon-save-reload.png"), size=(25, 25)
+)
+delete_icon = ctk.CTkImage(
+    light_image=Image.open("images/icon-delete.png"), size=(20, 20)
+)
 
 
 EU = (  # eu layer images
